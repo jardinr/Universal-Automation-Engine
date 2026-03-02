@@ -1,0 +1,47 @@
+
+{
+  "workflow_name": "[Workflow Name]",
+  "description": "[Description of the workflow]",
+  "trigger": {
+    "source_adapter": "[ID of the source adapter from company_profile]",
+    "event": "[Event to trigger on, e.g., new_email, new_webhook_payload]"
+  },
+  "steps": [
+    {
+      "step_id": "extract_data",
+      "type": "data_extraction",
+      "parser_module": "[Reference to parser module, e.g., email_parser.py]",
+      "config": {
+        "template_id": "[Parseur template ID]"
+      }
+    },
+    {
+      "step_id": "categorize_inquiry",
+      "type": "ai_processing",
+      "ai_model": "main_categorizer",
+      "input_fields": ["extracted_subject", "extracted_body"],
+      "output_fields": ["category", "urgency", "summary"]
+    },
+    {
+      "step_id": "route_to_crm",
+      "type": "action_integration",
+      "platform_adapter": "crm",
+      "action": "create_deal",
+      "mapping": {
+        "deal_name": "{{summary}}",
+        "contact_email": "{{extracted_email}}",
+        "deal_stage": "{{category}}"
+      }
+    },
+    {
+      "step_id": "send_notification",
+      "type": "action_integration",
+      "platform_adapter": "project_management",
+      "action": "create_card",
+      "mapping": {
+        "card_title": "New Inquiry: {{summary}}",
+        "list_name": "{{category}}"
+      }
+    }
+  ]
+}

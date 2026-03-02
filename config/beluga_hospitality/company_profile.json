@@ -1,0 +1,42 @@
+
+{
+  "company_name": "Beluga Hospitality",
+  "industry": "Hospitality - Corporate Entertainment",
+  "contact_email": "dudley@belugahospitality.co.za",
+  "data_sources": [
+    {
+      "id": "beluga_email_inbox",
+      "type": "email",
+      "provider": "Outlook",
+      "inbox_folder": "To Process",
+      "parser_config": {
+        "tool": "Parseur",
+        "template_id": "beluga_event_inquiry_template"
+      }
+    }
+  ],
+  "ai_models": [
+    {
+      "id": "beluga_inquiry_categorizer",
+      "provider": "OpenAI",
+      "model_id": "gpt-4o-mini",
+      "prompt_template_file": "ai_prompts/categorization_prompt.txt"
+    }
+  ],
+  "action_platforms": [
+    {
+      "id": "beluga_hubspot_crm",
+      "provider": "HubSpot",
+      "api_key_env_var": "HUBSPOT_API_KEY",
+      "mapping_config_file": "hubspot_mappings.json"
+    },
+    {
+      "id": "beluga_trello_pm",
+      "provider": "Trello",
+      "api_key_env_var": "TRELLO_API_KEY",
+      "token_env_var": "TRELLO_TOKEN",
+      "board_id": "[Beluga_Events_Board_ID]",
+      "list_mapping_file": "trello_list_mappings.json"
+    }
+  ]
+}

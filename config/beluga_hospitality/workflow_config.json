@@ -1,0 +1,50 @@
+
+{
+  "workflow_name": "Beluga Email Triage and Action",
+  "description": "Automates the processing, categorization, and routing of incoming client emails for Beluga Hospitality.",
+  "trigger": {
+    "source_adapter": "beluga_email_inbox",
+    "event": "new_email"
+  },
+  "steps": [
+    {
+      "step_id": "extract_email_data",
+      "type": "data_extraction",
+      "parser_module": "email_parser.py",
+      "config": {
+        "tool": "Parseur",
+        "template_id": "beluga_event_inquiry_template"
+      }
+    },
+    {
+      "step_id": "categorize_inquiry_ai",
+      "type": "ai_processing",
+      "ai_model": "beluga_inquiry_categorizer",
+      "input_fields": ["subject", "body", "extracted_event_name", "extracted_client_name"],
+      "output_fields": ["category", "urgency", "summary", "suggested_response_draft"]
+    },
+    {
+      "step_id": "create_hubspot_deal",
+      "type": "action_integration",
+      "platform_adapter": "beluga_hubspot_crm",
+      "action": "create_deal",
+      "mapping": {
+        "dealname": "{{summary}}",
+        "dealstage": "{{category}}",
+        "hubspot_owner_id": "[Owner ID based on category, e.g., Dudley Horn ID]",
+        "email": "{{extracted_email}}",
+        "notes": "Original Email: {{body}}\n\nAI Summary: {{summary}}\nAI Category: {{category}}\nAI Urgency: {{urgency}}\nSuggested Response: {{suggested_response_draft}}"
+      }
+    },
+    {
+      "step_id": "send_internal_notification",
+      "type": "action_integration",
+      "platform_adapter": "slack_notifier",
+      "action": "send_message",
+      "config": {
+        "channel": "#new-inquiries",
+        "message": "New {{category}} inquiry from {{extracted_client_name}} ({{extracted_email}}). Urgency: {{urgency}}. See HubSpot deal: [Link to HubSpot Deal]"
+      }
+    }
+  ]
+}

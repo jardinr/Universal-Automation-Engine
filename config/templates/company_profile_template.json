@@ -1,0 +1,41 @@
+
+{
+  "company_name": "[Company Name]",
+  "industry": "[Industry, e.g., Hospitality, E-commerce]",
+  "contact_email": "[Primary Contact Email]",
+  "data_sources": [
+    {
+      "type": "email",
+      "provider": "[Gmail, Outlook, etc.]",
+      "inbox_folder": "[Folder to monitor]",
+      "parser_config": "[Reference to parser configuration]"
+    },
+    {
+      "type": "webhook",
+      "endpoint": "[Webhook URL]",
+      "parser_config": "[Reference to parser configuration]"
+    }
+  ],
+  "ai_models": [
+    {
+      "name": "main_categorizer",
+      "provider": "[OpenAI, custom_model]",
+      "model_id": "[gpt-4o, custom_classifier_v1]",
+      "prompt_template": "[Reference to prompt template file]"
+    }
+  ],
+  "action_platforms": [
+    {
+      "name": "crm",
+      "provider": "[HubSpot, Salesforce]",
+      "api_key_env_var": "[ENV_VAR_NAME]",
+      "mapping_config": "[Reference to CRM field mapping]"
+    },
+    {
+      "name": "project_management",
+      "provider": "[Trello, Asana]",
+      "board_id": "[Board ID]",
+      "list_mapping": "[Mapping of categories to lists]"
+    }
+  ]
+}
