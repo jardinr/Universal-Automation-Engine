@@ -5,22 +5,23 @@ import os
 
 class Orchestrator:
     def __init__(self, company_profile_path, workflow_config_path):
+        self.company_profile_path = company_profile_path # Store the path
+        self.workflow_config_path = workflow_config_path # Store the path
         self.company_profile = self._load_config(company_profile_path)
         self.workflow_config = self._load_config(workflow_config_path)
         self.adapters = {}
-        self._initialize_adapters()
+        self._initialize_adapters(os.path.dirname(company_profile_path))
 
     def _load_config(self, path):
         with open(path, 'r') as f:
             return json.load(f)
 
-    def _initialize_adapters(self):
+    def _initialize_adapters(self, config_base_path):
         # Initialize Data Ingestion Adapters
         for source in self.company_profile.get("data_sources", []):
             adapter_id = source["id"]
             tool = source["parser_config"].get("tool")
-            if tool == "Parseur":
-                # For Parseur, we might just need its template ID in the config
+            if tool == "Parseur" or tool == "SimulatedEmailParser": # Added SimulatedEmailParser
                 self.adapters[adapter_id] = importlib.import_module("src.adapters.data_ingestion.email_parser").EmailParser(source["parser_config"])
             # Add other data ingestion tools here
 
@@ -56,7 +57,7 @@ class Orchestrator:
             parsed_data = source_adapter.parse_email(raw_input_data)
             context.update(parsed_data)
         else:
-            print(f"Unsupported trigger event: {trigger_config['event']}")
+            print(f"Unsupported trigger event: {trigger_config["event"]}")
             return
 
         for step in self.workflow_config["steps"]:
@@ -74,8 +75,17 @@ class Orchestrator:
                     raise ValueError(f"AI adapter {ai_model_id} not found.")
 
                 input_for_ai = {field: context.get(field) for field in step["input_fields"]}
-                prompt_template_file = self.company_profile["ai_models"][0]["prompt_template_file"] # Assuming first AI model for simplicity
-                ai_output_str = ai_adapter.process_text(input_for_ai, os.path.join(os.path.dirname(workflow_config_path), prompt_template_file))
+                
+                # Get prompt template path from workflow config, relative to company_profile.json
+                prompt_template_relative_path = step.get("prompt_template_file")
+                if not prompt_template_relative_path:
+                    raise ValueError(f"Prompt template file not specified for AI processing step {step_id}")
+                
+                # Construct absolute path for prompt template
+                company_profile_dir = os.path.dirname(self.company_profile_path)
+                prompt_template_file = os.path.join(company_profile_dir, prompt_template_relative_path)
+
+                ai_output_str = ai_adapter.process_text(input_for_ai, prompt_template_file)
                 
                 try:
                     ai_output = json.loads(ai_output_str)
@@ -99,7 +109,7 @@ class Orchestrator:
                     # Simple template rendering for now
                     rendered_value = value_template
                     for k, v in context.items():
-                        rendered_value = rendered_value.replace(f"{{{{{k}}}}}", str(v))
+                        rendered_value = rendered_value.replace(f"{{{{{k}}}}", str(v))
                     action_data[key] = rendered_value
 
                 if action_name == "create_deal":

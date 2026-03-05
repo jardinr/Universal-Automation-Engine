@@ -1,4 +1,3 @@
-
 {
   "company_name": "Beluga Hospitality",
   "industry": "Hospitality - Corporate Entertainment",
@@ -7,11 +6,11 @@
     {
       "id": "beluga_email_inbox",
       "type": "email",
-      "provider": "Outlook",
+      "provider": "Simulated",
       "inbox_folder": "To Process",
       "parser_config": {
-        "tool": "Parseur",
-        "template_id": "beluga_event_inquiry_template"
+        "tool": "SimulatedEmailParser",
+        "template_id": "beluga_inquiry_template"
       }
     }
   ],
@@ -20,6 +19,7 @@
       "id": "beluga_inquiry_categorizer",
       "provider": "OpenAI",
       "model_id": "gpt-4o-mini",
+      "api_key_env_var": "OPENAI_API_KEY",
       "prompt_template_file": "ai_prompts/categorization_prompt.txt"
     }
   ],
