@@ -2,6 +2,7 @@ import os
 import time
 import json
 from src.core.orchestrator import Orchestrator
+from src.adapters.data_ingestion.outlook_imap import OutlookIMAP
 
 # --- Configuration from Environment Variables ---
 # These should be set securely in your deployment environment.
@@ -9,9 +10,9 @@ from src.core.orchestrator import Orchestrator
 
 HUBSPOT_API_KEY = os.getenv("HUBSPOT_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-PARSEUR_API_KEY = os.getenv("PARSEUR_API_KEY") # Still needed for Parseur if not using IMAP
+# PARSEUR_API_KEY = os.getenv("PARSEUR_API_KEY") # No longer needed if using IMAP
 
-# IMAP Listener Configuration (for custom email ingestion)
+# IMAP Listener Configuration
 IMAP_SERVER = os.getenv("IMAP_SERVER")
 IMAP_PORT = os.getenv("IMAP_PORT", "993")
 IMAP_USERNAME = os.getenv("IMAP_USERNAME")
@@ -32,41 +33,54 @@ def main():
         workflow_config_path=WORKFLOW_CONFIG_PATH,
         openai_api_key=OPENAI_API_KEY,
         hubspot_api_key=HUBSPOT_API_KEY,
-        parseur_api_key=PARSEUR_API_KEY # Pass if Parseur is still used
+        # parseur_api_key=PARSEUR_API_KEY # No longer pass Parseur API key if not used
     )
 
+    # Initialize IMAP client
+    if not all([IMAP_SERVER, IMAP_USERNAME, IMAP_PASSWORD]):
+        print("IMAP credentials not fully provided. Please set IMAP_SERVER, IMAP_USERNAME, IMAP_PASSWORD environment variables.")
+        print("Falling back to simulated email processing for testing purposes.")
+        # Fallback to simulated email if IMAP not configured
+        while True:
+            print(f"Polling for new emails... (Next poll in {POLLING_INTERVAL_SECONDS} seconds)")
+            try:
+                simulated_email_content = """
+                Subject: New Event Inquiry - Corporate Gala
+                From: client@example.com
+                To: events@belugahospitality.co.za
+
+                Dear Beluga Hospitality Team,
+
+                We are interested in booking a corporate gala for approximately 150 guests on October 26, 2026.
+                Our budget is around R50,000. Please let us know your availability and package options.
+
+                Best regards,
+                John Doe
+                Client Solutions
+                """
+                print("Simulating new email for processing...")
+                orchestrator.process_email(simulated_email_content)
+                print("Simulated email processed.")
+            except Exception as e:
+                print(f"An error occurred during simulated polling: {e}")
+            time.sleep(POLLING_INTERVAL_SECONDS)
+
+    imap_client = OutlookIMAP(IMAP_SERVER, IMAP_PORT, IMAP_USERNAME, IMAP_PASSWORD, imap_folder=IMAP_FOLDER)
+
     while True:
-        print(f"Polling for new emails... (Next poll in {POLLING_INTERVAL_SECONDS} seconds)")
+        print(f"Polling for new emails via IMAP... (Next poll in {POLLING_INTERVAL_SECONDS} seconds)")
         try:
-            # --- Simulate Email Ingestion (Replace with actual IMAP listener or Parseur API call) ---
-            # For now, this is a placeholder. The IMAP listener development is the next step.
-            # In a real scenario, this would fetch new emails from IMAP or Parseur.
-            # For testing, we can simulate an email by reading from a test file or a mock source.
-            
-            # Example of a simulated email (for testing the full pipeline without IMAP/Parseur yet)
-            # In a real scenario, this would come from the IMAP listener or Parseur webhook
-            simulated_email_content = """
-            Subject: New Event Inquiry - Corporate Gala
-            From: client@example.com
-            To: events@belugahospitality.co.za
-
-            Dear Beluga Hospitality Team,
-
-            We are interested in booking a corporate gala for approximately 150 guests on October 26, 2026.
-            Our budget is around R50,000. Please let us know your availability and package options.
-
-            Best regards,
-            John Doe
-            Client Solutions
-            """
-            
-            # Process the simulated email
-            print("Simulating new email for processing...")
-            orchestrator.process_email(simulated_email_content)
-            print("Simulated email processed.")
+            new_emails = imap_client.fetch_new_emails()
+            if new_emails:
+                print(f"Found {len(new_emails)} new emails via IMAP. Processing...")
+                for email_content in new_emails:
+                    orchestrator.process_email(email_content)
+                print("All new IMAP emails processed.")
+            else:
+                print("No new emails found via IMAP.")
 
         except Exception as e:
-            print(f"An error occurred during polling: {e}")
+            print(f"An error occurred during IMAP polling: {e}")
 
         time.sleep(POLLING_INTERVAL_SECONDS)
 
